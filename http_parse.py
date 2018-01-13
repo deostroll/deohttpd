@@ -1,9 +1,8 @@
-import ure as re
-
-http_regex = re.compile(r'^^(GET|POST)\s(.*)\sHTTP\/1\.1')
-header_regex = re.compile(r'^(.*)\:\s(.*)')
-
+import regexes as re
 import logger
+
+class CONSTS:
+	NEW_LINE = '\r\n'
 
 log = logger.Logger('parser', logger.LOG_LEVEL.VERB)
 
@@ -17,49 +16,46 @@ def _sanitize_(txt):
 			 + txt[idx + 2 : ]
 	return txt
 
-# def parse(stream, client):
-# 	line = stream.readline()
-# 	log.verb('line: %s' % line)
-# 	match = http_regex.match(line)
-# 	method, path = (match.group(1), match.group(2))
-# 	log.verb('method: %s, path: %s' %(method, path))
-# 	headers = {}
-# 	log.verb('parsing headers...')
-# 	while True:
-# 		line = stream.readline()
-# 		log.verb('line: %s, type: %s' \
-# 			% (line, str(type(line)) ))
-# 		if line == '\r\n' or not line:
-# 			break
-# 		match = header_regex.match(line)
-# 		log.verb(match)
-# 		parts = (match.group(1), match.group(2)[:-2])
-# 		headers[_sanitize_(parts[0])] = parts[1]
-
-# 	log.verb('headers: %s' % headers)
-
-# 	if method == 'POST':
-# 		content_type = headers['Content-Type']
-# 		if content_type == 'application/x-www-form-urlencoded':
-# 			log.verb('parsing urlencoded data...')
-# 			stream.close()
-# 			arr = client.read(4096)
-# 			log.verb('received: %s' % (len(arr)))
-# 		return (method, path, headers, stream)
-
-# 	return (method, path, headers, None)
-
 def parse(client):
+	client_stream = client.makefile('rwb', 0)
+	bline = client_stream.readline()
+	line = bline.decode('utf-8')
+	match = re.http_regex.match(line)
+	if match:
+		method = match.group(1)
+		path = match.group(2)
+	else:
+		log.error('Invalid header start')
+		client_stream.close()
 
-	data = []
-	has_contents = True
+	log.verb('parsing headers...')
+	headers = {}
+	while True:
+		bline = client_stream.readline()
+		line = bline.decode('utf-8')
+		if line == '\r\n' or not line:
+			break
+		
+		if CONSTS.NEW_LINE in line : line = line[:-2]
 
-	while has_contents:
-		_bytes_ = client.recv(4096)
-		data.append(_bytes_)
-		if len(_bytes_) <= 4096:
-			has_contents = False
-	print('data:', data)
-	client.send('ok')
-	client.close()
+		match = re.header_regex.match(line)
+		
+		if match:
+			key = _sanitize_(match.group(1))
+			value = match.group(2)
+			headers[key] = value
+		else:
+			log.error('could not parse header line: %s' % line)
 	
+	data = None
+	
+	if method == 'POST' and line:
+		length = int(headers['Content-Length'])
+		log.verb('Reading post data...')
+		data = client_stream.read(length)
+		log.verb('data received: %s' % data)
+
+	result = (method, path, headers, data)
+	
+	log.verb('Parsed: %s' % ( str(result) ))
+	return result
