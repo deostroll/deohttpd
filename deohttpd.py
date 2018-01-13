@@ -40,10 +40,10 @@ class HTTPServer:
 
 	def send(self, status_code=200, message='OK'):
 		# client, _ = self.current
-		self.writeln('HTTP/1.1 %s\r\n' % (status_code))
-		self.writeln('Server: micropython_http_server (by deostroll)\r\n')
-		self.writeln('\r\n')
-		self.writeln('%s\r\n' % message)
+		self.writeln('HTTP/1.1 %s' % status_code)
+		self.writeln('Server: deohttpd (MicroPython)')
+		self.writeln('')
+		self.writeln('%s' % message)
 		
 
 	def send_ok(self):
