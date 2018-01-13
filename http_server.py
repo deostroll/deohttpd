@@ -38,14 +38,7 @@ class HTTPServer:
 	"""
 	def accept(self):
 		client, addr = self.current = self.sock.accept()
-		stream = client.makefile('rw', 0)
-		results = parse(stream, client)
-		handler = self.handler
-		method = results[0]
-		if method == 'POST':
-			handler.doPOST(results, client, addr, self)
-		elif method == 'GET':
-			handler.doGET(results, client, addr, self)
+		parse(client)
 
 	def send(self, status_code=200, message='OK'):
 		client, _ = self.current
@@ -63,8 +56,15 @@ class HTTPServer:
 		client.send('%s\r\n' % message)
 
 
-if __name__ == '__main__':
+def test():
+
 	server = HTTPServer(port=8080)
 	server.listen()
+	print('running on port 8080...')
+	
 	while True:
 		server.accept()
+
+if __name__ == '__main__':
+
+	test()
