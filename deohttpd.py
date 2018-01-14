@@ -23,7 +23,8 @@ class HTTPServer:
 		addr = socket.getaddrinfo(host, port)[0][-1]
 		self.sock.bind(addr)
 		self.handler = handler
-
+		self.port = port
+		
 	def listen(self, no_of_connections=1):
 		self.sock.listen(no_of_connections)
 
